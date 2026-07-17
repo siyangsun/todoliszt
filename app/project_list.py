@@ -8,8 +8,8 @@ from PyQt6.QtWidgets import (
 )
 from data.store import Project, fmt_date
 
-COLUMNS = ["Name", "BPM", "Sig", "Length", "Modified", "Bounces"]
-COL_NAME, COL_BPM, COL_SIG, COL_LEN, COL_MOD, COL_BOUNCE = range(6)
+COLUMNS = ["Name", "BPM", "Sig", "Length", "Created", "Modified", "Bounces"]
+COL_NAME, COL_BPM, COL_SIG, COL_LEN, COL_CREATED, COL_MOD, COL_BOUNCE = range(7)
 
 
 class ProjectModel(QAbstractTableModel):
@@ -51,6 +51,8 @@ class ProjectModel(QAbstractTableModel):
                 return p.time_sig_str
             if col == COL_LEN:
                 return p.length_str
+            if col == COL_CREATED:
+                return fmt_date(p.created)
             if col == COL_MOD:
                 return fmt_date(p.modified)
             if col == COL_BOUNCE:
@@ -75,6 +77,8 @@ class ProjectModel(QAbstractTableModel):
                 return (p.time_sig_num or 0) * 100 + (p.time_sig_denom or 0)
             if col == COL_LEN:
                 return p.length_seconds or 0.0
+            if col == COL_CREATED:
+                return p.created or 0.0
             if col == COL_MOD:
                 return p.modified or 0.0
             if col == COL_BOUNCE:
@@ -120,7 +124,7 @@ class ProjectListView(QTableView):
         self.verticalHeader().setVisible(False)
         self.verticalHeader().setDefaultSectionSize(24)
         self.horizontalHeader().setSectionResizeMode(COL_NAME, QHeaderView.ResizeMode.Stretch)
-        for col in (COL_BPM, COL_SIG, COL_LEN, COL_MOD, COL_BOUNCE):
+        for col in (COL_BPM, COL_SIG, COL_LEN, COL_CREATED, COL_MOD, COL_BOUNCE):
             self.horizontalHeader().setSectionResizeMode(col, QHeaderView.ResizeMode.ResizeToContents)
         self.setShowGrid(False)
         self.setAlternatingRowColors(True)
