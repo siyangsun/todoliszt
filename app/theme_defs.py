@@ -1,0 +1,167 @@
+"""Theme color definitions.
+
+DEFAULT_THEME uses the native windowsvista style and no custom palette.
+Every other theme is a Fusion-style palette built from one of these dicts.
+
+Key → QPalette role mapping (see themes.py):
+  window/base/alternate_base/button/text — the usual suspects
+  accent           → Highlight (selections)
+  border           → Mid       (chip/section borders in widget QSS)
+  hover            → Midlight  (chip hover fill)
+  muted            → Dark      (secondary text: paths, hints, status)
+"""
+
+DEFAULT_THEME = "Windows 7"
+
+PALETTE_THEMES = {
+    # Bitwig Studio — charcoal panels, warm-orange accent, slightly warm neutral tones
+    "Bitwig": {
+        "window": "#232323",
+        "base": "#191919",
+        "alternate_base": "#1f1f1f",
+        "button": "#2e2e2e",
+        "text": "#e0dcd8",
+        "accent": "#e06918",
+        "highlighted_text": "#ffffff",
+        "link": "#e06918",
+        "border": "#504840",
+        "hover": "#3a3330",
+        "muted": "#8a8078",
+        "placeholder": "#6e6460",
+        "disabled": "#565050",
+        "bright_text": "#ff8c3a",
+    },
+    "Dark": {
+        "window": "#2d2d2d",
+        "base": "#1e1e1e",
+        "alternate_base": "#262626",
+        "button": "#2d2d2d",
+        "text": "#dcdcdc",
+        "accent": "#2a82da",
+        "highlighted_text": "#ffffff",
+        "link": "#2a82da",
+        "border": "#5a5a5a",
+        "hover": "#3e3e3e",
+        "muted": "#969696",
+        "placeholder": "#828282",
+        "disabled": "#787878",
+        "bright_text": "#ff5050",
+    },
+    # Near-black with warm orange accents throughout, not just selections
+    "Zune": {
+        "window": "#1a1a1a",
+        "base": "#0d0d0d",
+        "alternate_base": "#161616",
+        "button": "#232323",
+        "text": "#e6e6e6",
+        "accent": "#f05a1e",
+        "highlighted_text": "#ffffff",
+        "link": "#f05a1e",
+        "border": "#6e4a32",
+        "hover": "#332217",
+        "muted": "#a89484",
+        "placeholder": "#8c7a6e",
+        "disabled": "#6e6258",
+        "bright_text": "#ff6a2e",
+    },
+    "VS Code Dark+": {
+        "window": "#252526",
+        "base": "#1e1e1e",
+        "alternate_base": "#2a2d2e",
+        "button": "#333333",
+        "text": "#cccccc",
+        "accent": "#264f78",
+        "highlighted_text": "#ffffff",
+        "link": "#3794ff",
+        "border": "#454545",
+        "hover": "#37373d",
+        "muted": "#858585",
+        "placeholder": "#6e6e6e",
+        "disabled": "#656565",
+        "bright_text": "#f48771",
+    },
+    "Monokai": {
+        "window": "#272822",
+        "base": "#1e1f1c",
+        "alternate_base": "#24251f",
+        "button": "#414339",
+        "text": "#f8f8f2",
+        "accent": "#49483e",
+        "highlighted_text": "#f8f8f2",
+        "link": "#66d9ef",
+        "border": "#75715e",
+        "hover": "#3e3d32",
+        "muted": "#90918b",
+        "placeholder": "#75715e",
+        "disabled": "#6a6b65",
+        "bright_text": "#f92672",
+    },
+    # 80s retro neon — deep purple background, hot-pink selections, electric-cyan links
+    "Synthwave": {
+        "window": "#1a0533",
+        "base": "#0d0020",
+        "alternate_base": "#150829",
+        "button": "#2d1a4a",
+        "text": "#f0e6ff",
+        "accent": "#ff2d78",
+        "highlighted_text": "#ffffff",
+        "link": "#00d4ff",
+        "border": "#7a2d8a",
+        "hover": "#3d1860",
+        "muted": "#9b69b8",
+        "placeholder": "#7a5390",
+        "disabled": "#5e3e73",
+        "bright_text": "#ff2d78",
+    },
+    # Dracula — rich purple with pink/cyan accents
+    "Dracula": {
+        "window": "#282a36",
+        "base": "#1e2029",
+        "alternate_base": "#232535",
+        "button": "#44475a",
+        "text": "#f8f8f2",
+        "accent": "#bd93f9",
+        "highlighted_text": "#f8f8f2",
+        "link": "#8be9fd",
+        "border": "#6272a4",
+        "hover": "#383a4a",
+        "muted": "#6272a4",
+        "placeholder": "#565769",
+        "disabled": "#4e505f",
+        "bright_text": "#ff79c6",
+    },
+    # Nord — cool arctic blue-grays with steel-blue accent
+    "Nord": {
+        "window": "#2e3440",
+        "base": "#272c36",
+        "alternate_base": "#2c3243",
+        "button": "#3b4252",
+        "text": "#eceff4",
+        "accent": "#5e81ac",
+        "highlighted_text": "#eceff4",
+        "link": "#88c0d0",
+        "border": "#4c566a",
+        "hover": "#434c5e",
+        "muted": "#6e7b8f",
+        "placeholder": "#5a6475",
+        "disabled": "#525a68",
+        "bright_text": "#bf616a",
+    },
+    # Cyberpunk — near-black with electric-yellow selections and neon-teal links
+    "Cyberpunk": {
+        "window": "#0d0d1a",
+        "base": "#05050f",
+        "alternate_base": "#0f0f1e",
+        "button": "#1a1a2e",
+        "text": "#f0f0f0",
+        "accent": "#fcee0a",
+        "highlighted_text": "#000000",
+        "link": "#00ffcc",
+        "border": "#3d0070",
+        "hover": "#16213e",
+        "muted": "#8a8a40",
+        "placeholder": "#606030",
+        "disabled": "#4a4a4a",
+        "bright_text": "#ff00aa",
+    },
+}

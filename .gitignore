@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+
+# Runtime config — user-specific, not for version control
+.env
+settings.json
+cache.json
+
+# Claude working notes
+.claude/
+.git/
+
+# Local launcher
+Todoliszt.bat
+
+# PyInstaller output
+dist/
+build/
+*.spec
