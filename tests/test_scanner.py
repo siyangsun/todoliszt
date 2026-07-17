@@ -15,11 +15,14 @@ def isolated_cache(tmp_path, monkeypatch):
     monkeypatch.setattr(scanner_mod, "CACHE_PATH", tmp_path / "cache.json")
 
 
-def _make_store(root, bounces=()):
-    # Bypass __init__ so tests never touch the real settings.json
+def _make_store(roots, bounces=()):
+    # Accepts a single path or a list; bypasses __init__ so tests never touch
+    # the real settings.json
     store = Store.__new__(Store)
+    if isinstance(roots, (str, Path)):
+        roots = [roots]
     store._settings = {
-        "root_folder": str(root),
+        "root_folders": [str(r) for r in roots],
         "bounce_folders": [str(b) for b in bounces],
     }
     store._data = {}
@@ -95,8 +98,6 @@ def test_bounce_matching_recursive_and_case_insensitive(tmp_path):
 
 
 def test_bounce_longest_project_name_wins(tmp_path):
-    # A file matching several project names goes to the longest match only,
-    # but plain prefix matching still applies (no separator required)
     root = tmp_path / "projects"
     root.mkdir()
     _make_project(root, "hihihi")
@@ -178,3 +179,40 @@ def test_user_data_merged(tmp_path):
     projects = scan(store)
     assert projects[0].tags == ["ambient"]
     assert projects[0].notes == "wip"
+
+
+def test_multiple_roots_merged(tmp_path):
+    root_a = tmp_path / "a"
+    root_b = tmp_path / "b"
+    root_a.mkdir()
+    root_b.mkdir()
+    _make_project(root_a, "Alpha", bpm=100.0)
+    _make_project(root_b, "Beta", bpm=130.0)
+
+    projects = scan(_make_store([root_a, root_b]))
+    names = [p.name for p in projects]
+    assert "Alpha" in names
+    assert "Beta" in names
+
+
+def test_nested_root_finds_inner_projects(tmp_path):
+    # Scanner is one-level deep, so a subfolder used as an explicit root
+    # surfaces projects that would otherwise be invisible from the parent root.
+    outer = tmp_path / "outer"
+    inner = outer / "_the vault"
+    inner.mkdir(parents=True)
+    _make_project(outer, "OuterSong", bpm=100.0)
+    _make_project(inner, "InnerSong", bpm=120.0)
+
+    projects = scan(_make_store([outer, inner]))
+    names = [p.name for p in projects]
+    assert "OuterSong" in names
+    assert "InnerSong" in names
+
+
+def test_duplicate_project_path_not_doubled(tmp_path):
+    # Same physical folder listed under two roots that both resolve to it
+    # (pathological case — same path added twice)
+    _make_project(tmp_path, "Song", bpm=120.0)
+    projects = scan(_make_store([tmp_path, tmp_path]))
+    assert len([p for p in projects if p.name == "Song"]) == 1

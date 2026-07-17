@@ -65,13 +65,11 @@ class Store:
     def __init__(self):
         self._settings: dict = {}
         self._data: dict = {}
-        self._data_path: Optional[Path] = None
+        self._data_path: Path = SETTINGS_PATH.parent / DATA_FILENAME
         self._load_settings()
-        if not self.root_folder:
+        self._load_data()
+        if not self.root_folders:
             self._bootstrap_from_env()
-        if self.root_folder:
-            self._data_path = Path(self.root_folder) / DATA_FILENAME
-            self._load_data()
 
     # --- settings ---
 
@@ -84,7 +82,7 @@ class Store:
                 if line.startswith("ROOT_FOLDER="):
                     value = line[len("ROOT_FOLDER="):].strip()
                     if value:
-                        self.root_folder = value
+                        self.root_folders = [value]
                         self.save_settings()
                     return
 
@@ -92,19 +90,21 @@ class Store:
         if SETTINGS_PATH.exists():
             with open(SETTINGS_PATH, encoding="utf-8") as f:
                 self._settings = json.load(f)
+        # Migrate old single root_folder key to list
+        if "root_folder" in self._settings and "root_folders" not in self._settings:
+            old = self._settings.pop("root_folder")
+            self._settings["root_folders"] = [old] if old else []
 
     def save_settings(self):
         _atomic_write_json(SETTINGS_PATH, self._settings)
 
     @property
-    def root_folder(self) -> Optional[str]:
-        return self._settings.get("root_folder")
+    def root_folders(self) -> list[str]:
+        return self._settings.get("root_folders", [])
 
-    @root_folder.setter
-    def root_folder(self, value: str):
-        self._settings["root_folder"] = value
-        self._data_path = Path(value) / DATA_FILENAME
-        self._load_data()
+    @root_folders.setter
+    def root_folders(self, value: list[str]):
+        self._settings["root_folders"] = value
 
     @property
     def theme(self) -> str:
@@ -147,7 +147,3 @@ class Store:
     def set_notes(self, project_name: str, notes: str):
         self._data.setdefault(project_name, {})["notes"] = notes
         self._save_data()
-
-    def initialize_root(self, root_folder: str):
-        self.root_folder = root_folder
-        self.save_settings()

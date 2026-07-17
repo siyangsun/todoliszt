@@ -1,6 +1,7 @@
+import os
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import (
-    QApplication, QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
+    QApplication, QDialog, QVBoxLayout, QHBoxLayout, QLabel,
     QPushButton, QListWidget, QDialogButtonBox, QFileDialog, QComboBox
 )
 from data.store import Store
@@ -21,16 +22,23 @@ class SettingsDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.setSpacing(10)
 
-        # Root folder
-        layout.addWidget(QLabel("Projects folder:"))
-        row = QHBoxLayout()
-        self._root_edit = QLineEdit(self._store.root_folder or "")
-        self._root_edit.setReadOnly(True)
-        browse_btn = QPushButton("Browse…")
-        browse_btn.clicked.connect(self._browse_root)
-        row.addWidget(self._root_edit)
-        row.addWidget(browse_btn)
-        layout.addLayout(row)
+        # Project folders
+        layout.addWidget(QLabel("Project folders:"))
+        self._root_list = QListWidget()
+        for f in self._store.root_folders:
+            self._root_list.addItem(f)
+        self._root_list.setFixedHeight(100)
+        layout.addWidget(self._root_list)
+
+        root_btn_row = QHBoxLayout()
+        add_root_btn = QPushButton("Add folder…")
+        add_root_btn.clicked.connect(self._add_root_folder)
+        remove_root_btn = QPushButton("Remove")
+        remove_root_btn.clicked.connect(self._remove_root_folder)
+        root_btn_row.addWidget(add_root_btn)
+        root_btn_row.addWidget(remove_root_btn)
+        root_btn_row.addStretch()
+        layout.addLayout(root_btn_row)
 
         # Bounce folders
         layout.addWidget(QLabel("Bounce folders:"))
@@ -73,10 +81,15 @@ class SettingsDialog(QDialog):
         )
         layout.addWidget(buttons)
 
-    def _browse_root(self):
-        folder = QFileDialog.getExistingDirectory(self, "Select projects folder")
+    def _add_root_folder(self):
+        folder = QFileDialog.getExistingDirectory(self, "Select project folder")
         if folder:
-            self._root_edit.setText(folder)
+            self._root_list.addItem(folder)
+
+    def _remove_root_folder(self):
+        row = self._root_list.currentRow()
+        if row >= 0:
+            self._root_list.takeItem(row)
 
     def _add_bounce_folder(self):
         folder = QFileDialog.getExistingDirectory(self, "Select bounce folder")
@@ -89,14 +102,14 @@ class SettingsDialog(QDialog):
             self._bounce_list.takeItem(row)
 
     def _apply(self):
-        root = self._root_edit.text().strip()
-        if root:
-            self._store.initialize_root(root)
-        bounces = [
-            self._bounce_list.item(i).text()
+        self._store.root_folders = [
+            os.path.normpath(self._root_list.item(i).text())
+            for i in range(self._root_list.count())
+        ]
+        self._store.bounce_folders = [
+            os.path.normpath(self._bounce_list.item(i).text())
             for i in range(self._bounce_list.count())
         ]
-        self._store.bounce_folders = bounces
         theme = self._theme_combo.currentText()
         if theme != self._store.theme:
             self._store.theme = theme

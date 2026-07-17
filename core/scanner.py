@@ -16,27 +16,36 @@ _EMPTY_PARSE = {
 
 
 def scan(store: Store) -> list[Project]:
-    root = store.root_folder
-    if not root or not os.path.isdir(root):
+    roots = [os.path.normpath(r) for r in store.root_folders if os.path.isdir(r)]
+    if not roots:
         return []
 
     all_bounce_files = _collect_bounce_files(store.bounce_folders)
-    projects = []
 
-    found = []
-    for entry in sorted(os.scandir(root), key=lambda e: e.name.lower()):
-        if not entry.is_dir():
-            continue
-        bwproject_path = _find_bwproject(entry.path)
-        if bwproject_path is not None:
-            found.append((entry, bwproject_path))
+    # Collect (entry, bwproject_path) across all roots; dedup by normalized folder path
+    found: dict[str, tuple] = {}
+    for root in roots:
+        for entry in os.scandir(root):
+            if not entry.is_dir():
+                continue
+            bwproject_path = _find_bwproject(entry.path)
+            if bwproject_path is not None:
+                key = os.path.normcase(os.path.normpath(entry.path))
+                if key not in found:
+                    found[key] = (entry, bwproject_path)
 
-    bounce_map = _assign_bounces([e.name for e, _ in found], all_bounce_files)
+    found_list = sorted(found.values(), key=lambda x: x[0].name.lower())
+
+    bounce_map = _assign_bounces([e.name for e, _ in found_list], all_bounce_files)
     cache = _load_cache()
     new_cache = {}
+    projects = []
 
-    for entry, bwproject_path in found:
-        stat = os.stat(bwproject_path)
+    for entry, bwproject_path in found_list:
+        try:
+            stat = os.stat(bwproject_path)
+        except OSError:
+            continue
         key = os.path.normcase(os.path.normpath(bwproject_path))
         cached = cache.get(key)
         if (
@@ -51,7 +60,6 @@ def scan(store: Store) -> list[Project]:
             try:
                 parsed = bwproject_parser.parse(bwproject_path)
             except Exception:
-                # A corrupt/unreadable project file shouldn't kill the whole scan
                 parsed = dict(_EMPTY_PARSE)
         new_cache[key] = {
             "mtime": stat.st_mtime,
@@ -80,6 +88,7 @@ def scan(store: Store) -> list[Project]:
 
     _save_cache(new_cache)
     return projects
+
 
 
 def _load_cache() -> dict:

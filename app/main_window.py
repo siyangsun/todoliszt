@@ -127,13 +127,19 @@ class MainWindow(QMainWindow):
         super().closeEvent(event)
 
     def _trigger_scan(self):
-        root = self._store.root_folder
-        self._root_lbl.setText(root or "")
-        if not root:
+        roots = self._store.root_folders
+        if len(roots) == 1:
+            self._root_lbl.setText(roots[0])
+        elif roots:
+            self._root_lbl.setText(f"{len(roots)} project folders")
+        else:
+            self._root_lbl.setText("")
+        if not roots:
             self._open_settings()
             return
-        if not os.path.isdir(root):
-            self._status.showMessage(f"Projects folder not found: {root}")
+        missing = [r for r in roots if not os.path.isdir(r)]
+        if missing:
+            self._status.showMessage(f"Folder not found: {missing[0]}")
             return
         if self._scan_thread and self._scan_thread.isRunning():
             return

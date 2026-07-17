@@ -14,9 +14,9 @@ def isolated_paths(tmp_path, monkeypatch):
     return tmp_path
 
 
-def test_fresh_store_has_no_root(isolated_paths):
+def test_fresh_store_has_no_roots(isolated_paths):
     store = Store()
-    assert store.root_folder is None
+    assert store.root_folders == []
     assert store.bounce_folders == []
 
 
@@ -26,7 +26,7 @@ def test_env_bootstrap(isolated_paths):
     (isolated_paths / ".env").write_text(f"ROOT_FOLDER={root}\n", encoding="utf-8")
 
     store = Store()
-    assert store.root_folder == str(root)
+    assert store.root_folders == [str(root)]
     # Bootstrap persists to settings.json so .env is only needed once
     assert (isolated_paths / "settings.json").exists()
 
@@ -35,19 +35,30 @@ def test_env_not_used_when_settings_exist(isolated_paths):
     configured = isolated_paths / "configured"
     configured.mkdir()
     (isolated_paths / "settings.json").write_text(
-        json.dumps({"root_folder": str(configured)}), encoding="utf-8"
+        json.dumps({"root_folders": [str(configured)]}), encoding="utf-8"
     )
     (isolated_paths / ".env").write_text("ROOT_FOLDER=C:/somewhere/else", encoding="utf-8")
 
     store = Store()
-    assert store.root_folder == str(configured)
+    assert store.root_folders == [str(configured)]
+
+
+def test_old_root_folder_key_migrated(isolated_paths):
+    configured = isolated_paths / "configured"
+    configured.mkdir()
+    (isolated_paths / "settings.json").write_text(
+        json.dumps({"root_folder": str(configured)}), encoding="utf-8"
+    )
+
+    store = Store()
+    assert store.root_folders == [str(configured)]
+    # Old key gone from in-memory settings
+    assert "root_folder" not in store._settings
 
 
 def test_tags_notes_survive_restart(isolated_paths):
-    root = isolated_paths / "music"
-    root.mkdir()
     store = Store()
-    store.initialize_root(str(root))
+    store.root_folders = [str(isolated_paths / "music")]
     store.set_tags("Song", ["ambient", "wip"])
     store.set_notes("Song", "started as a jam")
 
@@ -55,22 +66,18 @@ def test_tags_notes_survive_restart(isolated_paths):
     assert reloaded.get_user_data("Song") == (["ambient", "wip"], "started as a jam")
 
 
-def test_data_lives_inside_root(isolated_paths):
-    root = isolated_paths / "music"
-    root.mkdir()
+def test_data_lives_next_to_settings(isolated_paths):
     store = Store()
-    store.initialize_root(str(root))
+    store.root_folders = [str(isolated_paths / "music")]
     store.set_notes("Song", "hi")
-    assert (root / store_mod.DATA_FILENAME).exists()
+    assert (isolated_paths / store_mod.DATA_FILENAME).exists()
 
 
 def test_atomic_write_leaves_no_tmp(isolated_paths):
-    root = isolated_paths / "music"
-    root.mkdir()
     store = Store()
-    store.initialize_root(str(root))
+    store.root_folders = [str(isolated_paths / "music")]
     store.set_tags("Song", ["x"])
-    leftovers = list(root.glob("*.tmp")) + list(isolated_paths.glob("*.tmp"))
+    leftovers = list(isolated_paths.glob("*.tmp"))
     assert leftovers == []
 
 
