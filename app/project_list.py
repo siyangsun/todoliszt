@@ -2,7 +2,7 @@ import os
 from PyQt6.QtCore import (
     QAbstractTableModel, QModelIndex, Qt, QSortFilterProxyModel, pyqtSignal
 )
-from PyQt6.QtGui import QAction
+from PyQt6.QtGui import QAction, QFont
 from PyQt6.QtWidgets import (
     QTableView, QHeaderView, QMenu, QApplication
 )
@@ -16,11 +16,23 @@ class ProjectModel(QAbstractTableModel):
     def __init__(self):
         super().__init__()
         self._projects: list[Project] = []
+        self._playing_path: str | None = None
 
     def set_projects(self, projects: list[Project]):
         self.beginResetModel()
         self._projects = projects
         self.endResetModel()
+
+    def set_playing(self, path: str):
+        old_path = self._playing_path
+        self._playing_path = path
+        for row, p in enumerate(self._projects):
+            if (old_path and old_path in p.bounce_files) or path in p.bounce_files:
+                self.dataChanged.emit(
+                    self.index(row, 0),
+                    self.index(row, len(COLUMNS) - 1),
+                    [Qt.ItemDataRole.FontRole],
+                )
 
     def project_at(self, row: int) -> Project:
         return self._projects[row]
@@ -56,6 +68,12 @@ class ProjectModel(QAbstractTableModel):
             if col == COL_BOUNCE:
                 n = len(p.bounce_files)
                 return str(n) if n else ""
+
+        if role == Qt.ItemDataRole.FontRole:
+            if self._playing_path and self._playing_path in p.bounce_files:
+                f = QFont()
+                f.setBold(True)
+                return f
 
         if role == Qt.ItemDataRole.TextAlignmentRole:
             if col in (COL_BPM, COL_LEN, COL_BOUNCE):
@@ -160,6 +178,9 @@ class ProjectListView(QTableView):
 
     def set_filter(self, text: str):
         self.proxy.set_filter(text)
+
+    def set_playing(self, path: str):
+        self.source_model.set_playing(path)
 
     def selected_project(self):
         indexes = self.selectedIndexes()

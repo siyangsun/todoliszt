@@ -17,6 +17,12 @@ class _DoubleClickLabel(QLabel):
         super().mouseDoubleClickEvent(event)
 
 
+def _set_bold(widget, bold: bool):
+    f = widget.font()
+    f.setBold(bold)
+    widget.setFont(f)
+
+
 def _reveal_in_explorer(path: str):
     subprocess.Popen(["explorer", "/select,", os.path.normpath(path)])
 
@@ -126,6 +132,7 @@ class ProjectDetail(QWidget):
         self._store = store
         self._project: Project | None = None
         self._playing_path: str | None = None
+        self._bounce_labels: dict[str, _DoubleClickLabel] = {}
         self._notes_timer = QTimer()
         self._notes_timer.setSingleShot(True)
         self._notes_timer.setInterval(1000)
@@ -365,24 +372,25 @@ class ProjectDetail(QWidget):
         self.notes_changed.emit(self._project.name, text)
 
     def _play_bounce(self, path: str):
+        if self._playing_path and self._playing_path in self._bounce_labels:
+            _set_bold(self._bounce_labels[self._playing_path], False)
         self._playing_path = path
+        if path in self._bounce_labels:
+            _set_bold(self._bounce_labels[path], True)
         self.play_requested.emit(path)
-        if self._project:
-            self._refresh_bounces(self._project.bounce_files)
 
     def _refresh_bounces(self, bounce_files: list[str]):
         self._clear_bounces()
+        self._bounce_labels.clear()
         folder_icon = self.style().standardIcon(QStyle.StandardPixmap.SP_DirOpenIcon)
         for path in bounce_files:
-            playing = path == self._playing_path
             row = QHBoxLayout()
             name_lbl = _DoubleClickLabel(os.path.basename(path))
             name_lbl.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
             name_lbl.doubleClicked.connect(lambda p=path: self._play_bounce(p))
-            if playing:
-                f = name_lbl.font()
-                f.setBold(True)
-                name_lbl.setFont(f)
+            if path == self._playing_path:
+                _set_bold(name_lbl, True)
+            self._bounce_labels[path] = name_lbl
             play_btn = QPushButton("▶")
             play_btn.setFixedWidth(28)
             play_btn.setToolTip("Play in player")

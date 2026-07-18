@@ -83,6 +83,7 @@ class MainWindow(QMainWindow):
         self._detail.notes_changed.connect(self._on_notes_saved)
         self._detail.tags_changed.connect(self._on_tags_changed)
         self._detail.custom_title_changed.connect(self._on_custom_title_changed)
+        self._detail.play_requested.connect(self._list_view.set_playing)
         scroll.setWidget(self._detail)
         self._splitter.addWidget(scroll)
 
