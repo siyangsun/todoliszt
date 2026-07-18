@@ -154,6 +154,9 @@ class ProjectDetail(QWidget):
         self._title.setFont(f)
         self._title.setWordWrap(True)
         title_row.addWidget(self._title, 1)
+        self._open_bitwig_btn = QPushButton("Open in Bitwig")
+        self._open_bitwig_btn.clicked.connect(self._open_in_bitwig)
+        title_row.addWidget(self._open_bitwig_btn)
         open_folder_btn = QPushButton("Open folder")
         open_folder_btn.clicked.connect(self._open_folder)
         title_row.addWidget(open_folder_btn)
@@ -259,7 +262,15 @@ class ProjectDetail(QWidget):
         self._plugins_lbl.setText(",  ".join(project.plugins))
         self._plugins_box.setVisible(bool(project.plugins))
 
+        self._open_bitwig_btn.setVisible(
+            bool(project.bwproject_path) and os.path.isfile(project.bwproject_path)
+        )
+
         self._refresh_bounces(project.bounce_files)
+
+    def _open_in_bitwig(self):
+        if self._project and self._project.bwproject_path:
+            os.startfile(self._project.bwproject_path)
 
     def _open_folder(self):
         if self._project:
