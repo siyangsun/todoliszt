@@ -217,6 +217,10 @@ class ProjectListView(QTableView):
 
         if project.bounce_files:
             menu.addSeparator()
+            play_latest = QAction("Play latest bounce", self)
+            play_latest.triggered.connect(lambda: self.bounce_play_requested.emit(project.bounce_files[0]))
+            menu.addAction(play_latest)
+
             bounces_menu = menu.addMenu(f"Bounces ({len(project.bounce_files)})")
             for path in project.bounce_files:
                 action = QAction(os.path.basename(path), self)
