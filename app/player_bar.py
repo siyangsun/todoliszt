@@ -84,6 +84,10 @@ class PlayerBar(QWidget):
         self._stop_btn.setEnabled(enabled)
         self._slider.setEnabled(enabled)
 
+    def toggle_play(self):
+        if self._play_btn.isEnabled():
+            self._toggle_play()
+
     def _toggle_play(self):
         if self._player.playbackState() == QMediaPlayer.PlaybackState.PlayingState:
             self._player.pause()

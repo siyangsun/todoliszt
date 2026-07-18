@@ -112,12 +112,18 @@ class MainWindow(QMainWindow):
         QShortcut(QKeySequence("Escape"), self).activated.connect(self._on_escape)
         # Ctrl+R → rescan
         QShortcut(QKeySequence("Ctrl+R"), self).activated.connect(self._trigger_scan)
+        # Space → toggle play/pause (not when typing in a text field)
+        QShortcut(QKeySequence("Space"), self).activated.connect(self._on_space)
 
     def _on_escape(self):
         if self._search.hasFocus() and self._search.text():
             self._search.clear()
         else:
             self._list_view.clearSelection()
+
+    def _on_space(self):
+        if not isinstance(QApplication.focusWidget(), QLineEdit):
+            self._player_bar.toggle_play()
 
     def _restore_geometry(self):
         geom = self._qsettings.value(_GEOMETRY_KEY)
