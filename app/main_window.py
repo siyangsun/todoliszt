@@ -11,6 +11,7 @@ from core.scanner import scan
 from app.project_list import ProjectListView
 from app.project_detail import ProjectDetail
 from app.settings_dialog import SettingsDialog
+from app.player_bar import PlayerBar
 
 APP_NAME = "ToDoLiszt"
 _GEOMETRY_KEY = "geometry"
@@ -88,6 +89,10 @@ class MainWindow(QMainWindow):
         self._splitter.setStretchFactor(1, 2)
         self._splitter.setSizes([620, 410])
         root.addWidget(self._splitter)
+
+        self._player_bar = PlayerBar()
+        self._detail.play_requested.connect(self._player_bar.load)
+        root.addWidget(self._player_bar)
 
         self._status = QStatusBar()
         self.setStatusBar(self._status)

@@ -110,6 +110,7 @@ class ProjectDetail(QWidget):
     tags_changed = pyqtSignal(str, list)
     notes_changed = pyqtSignal(str, str)
     custom_title_changed = pyqtSignal(str, str)  # (project_name, new_title)
+    play_requested = pyqtSignal(str)              # file path to play
 
     def __init__(self, store: Store, parent=None):
         super().__init__(parent)
@@ -359,16 +360,17 @@ class ProjectDetail(QWidget):
             row = QHBoxLayout()
             name_lbl = QLabel(os.path.basename(path))
             name_lbl.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+            play_btn = QPushButton("▶")
+            play_btn.setFixedWidth(28)
+            play_btn.setToolTip("Play in player")
+            play_btn.clicked.connect(lambda checked, p=path: self.play_requested.emit(p))
             open_btn = QPushButton("Open")
             open_btn.setFixedWidth(50)
-            open_btn.clicked.connect(lambda checked, p=path: os.startfile(p))
-            reveal_btn = QPushButton("Reveal")
-            reveal_btn.setFixedWidth(55)
-            reveal_btn.setToolTip("Show in Explorer")
-            reveal_btn.clicked.connect(lambda checked, p=path: _reveal_in_explorer(p))
+            open_btn.setToolTip("Show in Explorer")
+            open_btn.clicked.connect(lambda checked, p=path: _reveal_in_explorer(p))
             row.addWidget(name_lbl)
+            row.addWidget(play_btn)
             row.addWidget(open_btn)
-            row.addWidget(reveal_btn)
             self._bounces_inner.addLayout(row)
         self._bounces_box.setVisible(bool(bounce_files))
 
