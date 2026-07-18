@@ -8,8 +8,8 @@ from PyQt6.QtWidgets import (
 )
 from data.store import Project, fmt_date
 
-COLUMNS = ["Name", "BPM", "Sig", "Length", "Created", "Modified", "Bounces"]
-COL_NAME, COL_BPM, COL_SIG, COL_LEN, COL_CREATED, COL_MOD, COL_BOUNCE = range(7)
+COLUMNS = ["Name", "BPM", "Length", "Created", "Modified", "Bounces"]
+COL_NAME, COL_BPM, COL_LEN, COL_CREATED, COL_MOD, COL_BOUNCE = range(6)
 
 
 class ProjectModel(QAbstractTableModel):
@@ -44,11 +44,9 @@ class ProjectModel(QAbstractTableModel):
 
         if role == Qt.ItemDataRole.DisplayRole:
             if col == COL_NAME:
-                return p.name
+                return p.title
             if col == COL_BPM:
                 return p.bpm_str
-            if col == COL_SIG:
-                return p.time_sig_str
             if col == COL_LEN:
                 return p.length_str
             if col == COL_CREATED:
@@ -60,21 +58,22 @@ class ProjectModel(QAbstractTableModel):
                 return str(n) if n else ""
 
         if role == Qt.ItemDataRole.TextAlignmentRole:
-            if col in (COL_BPM, COL_SIG, COL_LEN, COL_BOUNCE):
+            if col in (COL_BPM, COL_LEN, COL_BOUNCE):
                 return Qt.AlignmentFlag.AlignCenter
 
         if role == Qt.ItemDataRole.ToolTipRole and col == COL_NAME:
-            return p.folder_path
+            tip = p.folder_path
+            if p.title != p.name:
+                tip = f"Folder: {p.name}\n{tip}"
+            return tip
 
         # Sort role: header clicks sort via the proxy, which would otherwise
         # compare display strings ("99" > "120"). Give it real keys instead.
         if role == Qt.ItemDataRole.UserRole:
             if col == COL_NAME:
-                return p.name.lower()
+                return p.title.lower()
             if col == COL_BPM:
                 return p.bpm or 0.0
-            if col == COL_SIG:
-                return (p.time_sig_num or 0) * 100 + (p.time_sig_denom or 0)
             if col == COL_LEN:
                 return p.length_seconds or 0.0
             if col == COL_CREATED:
@@ -101,6 +100,8 @@ class FilterProxyModel(QSortFilterProxyModel):
             return True
         model: ProjectModel = self.sourceModel()
         p = model.project_at(source_row)
+        if self._filter in p.title.lower():
+            return True
         if self._filter in p.name.lower():
             return True
         if any(self._filter in t.lower() for t in p.tags):
@@ -112,9 +113,8 @@ class FilterProxyModel(QSortFilterProxyModel):
         lp = model.project_at(left.row())
         rp = model.project_at(right.row())
         col = left.column()
-        if col == COL_NAME:    return lp.name.lower() < rp.name.lower()
+        if col == COL_NAME:    return lp.title.lower() < rp.title.lower()
         if col == COL_BPM:     return (lp.bpm or 0.0) < (rp.bpm or 0.0)
-        if col == COL_SIG:     return ((lp.time_sig_num or 0) * 100 + (lp.time_sig_denom or 0)) < ((rp.time_sig_num or 0) * 100 + (rp.time_sig_denom or 0))
         if col == COL_LEN:     return (lp.length_seconds or 0.0) < (rp.length_seconds or 0.0)
         if col == COL_CREATED: return (lp.created or 0.0) < (rp.created or 0.0)
         if col == COL_MOD:     return (lp.modified or 0.0) < (rp.modified or 0.0)
@@ -139,7 +139,7 @@ class ProjectListView(QTableView):
         self.verticalHeader().setDefaultSectionSize(24)
         hh = self.horizontalHeader()
         hh.setSectionResizeMode(COL_NAME, QHeaderView.ResizeMode.Stretch)
-        for col in (COL_BPM, COL_SIG, COL_LEN, COL_CREATED, COL_MOD, COL_BOUNCE):
+        for col in (COL_BPM, COL_LEN, COL_CREATED, COL_MOD, COL_BOUNCE):
             hh.setSectionResizeMode(col, QHeaderView.ResizeMode.ResizeToContents)
         hh.setResizeContentsPrecision(0)  # only sample visible rows, not all rows
         self.setShowGrid(False)

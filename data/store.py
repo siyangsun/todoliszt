@@ -36,8 +36,10 @@ class Project:
     length_seconds: Optional[float] = None
     created: Optional[float] = None      # os.path.getctime result
     modified: Optional[float] = None     # os.path.getmtime result
+    bwproject_title: Optional[str] = None
     tags: list[str] = field(default_factory=list)
     notes: str = ""
+    custom_title: str = ""
     bounce_files: list[str] = field(default_factory=list)
     plugins: list[str] = field(default_factory=list)
 
@@ -53,6 +55,15 @@ class Project:
         if self.time_sig_num is None:
             return "—"
         return f"{self.time_sig_num}/{self.time_sig_denom}"
+
+    @property
+    def title(self) -> str:
+        """Display title: custom > bwproject internal name > folder name."""
+        if self.custom_title:
+            return self.custom_title
+        if self.bwproject_title:
+            return self.bwproject_title
+        return self.name
 
     @property
     def bpm_str(self) -> str:
@@ -136,9 +147,9 @@ class Store:
             return
         _atomic_write_json(self._data_path, self._data)
 
-    def get_user_data(self, project_name: str) -> tuple[list[str], str]:
+    def get_user_data(self, project_name: str) -> tuple[list[str], str, str]:
         entry = self._data.get(project_name, {})
-        return entry.get("tags", []), entry.get("notes", "")
+        return entry.get("tags", []), entry.get("notes", ""), entry.get("custom_title", "")
 
     def set_tags(self, project_name: str, tags: list[str]):
         self._data.setdefault(project_name, {})["tags"] = tags
@@ -146,4 +157,8 @@ class Store:
 
     def set_notes(self, project_name: str, notes: str):
         self._data.setdefault(project_name, {})["notes"] = notes
+        self._save_data()
+
+    def set_custom_title(self, project_name: str, title: str):
+        self._data.setdefault(project_name, {})["custom_title"] = title
         self._save_data()

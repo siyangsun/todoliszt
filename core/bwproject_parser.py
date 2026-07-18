@@ -4,7 +4,7 @@ Parse metadata from Bitwig Studio .bwproject files.
 FORMAT: .bwproject is a proprietary binary format (NOT a ZIP despite the name).
 Magic bytes: b'BtWg'. The file contains a node tree encoding the project state.
 
-CONFIRMED binary encoding (from reverse-engineering WHAT IS THIS SONG.bwproject):
+CONFIRMED binary encoding:
   Node structure: <node_id: 2 bytes> <type: 1 byte> <value...>
 
   type 0x01 = bool/byte (1 byte value)
@@ -13,15 +13,21 @@ CONFIRMED binary encoding (from reverse-engineering WHAT IS THIS SONG.bwproject)
   type 0x08 = named container / string (4-byte BE length + UTF-8 bytes)
   type 0x09 = int32      (4 bytes, big-endian)
 
-BPM: stored as type-07 double, node ID 0x02c8. The first 0x02c8 double in the file
-  whose value falls in a plausible BPM range is the project tempo. (Older files also
-  carry a b'\\x05TEMPO' text marker near it; newer Bitwig versions omit the marker,
-  so we scan for the node pattern directly. Verified against 54 real projects.)
+PROJECT TITLE: stored as type-08 string, node ID 0x0044. First occurrence is the
+  project name as set inside Bitwig (independent of filename or folder name).
 
-TIME SIGNATURE / BARS: encoding NOT yet confirmed. The Time Signature node (0x0176)
-  is present in the file but the numerator/denominator are stored in an unclear format.
-  Needs comparison of two projects with known different time signatures to decode.
-  Returns None until confirmed.
+BPM: stored as type-07 double, node ID 0x02c8. The first 0x02c8 double in the file
+  whose value falls in a plausible BPM range is the project tempo. Verified against
+  54+ real projects.
+
+TIME SIGNATURE: The "Time Signature" container (node 0x0176 type 0x08) is present
+  in the file. The two byte-flag nodes inside it (0x1d41, 0x1d42) are always 1
+  across every tested project (all 4/4). Without a known non-4/4 project to diff
+  against, the numerator/denominator encoding cannot be determined. Returns None.
+
+BARS / LENGTH: No reliable single-node encoding found. The playback cursor position
+  is stored (node 0x0b17 type 0x07) but is not the song length. Clip positions are
+  scattered throughout the file and would require full arrangement parsing. Returns None.
 """
 import os
 import re
@@ -33,6 +39,10 @@ _MAGIC = b'BtWg'
 # BPM node: id 0x02c8, type 0x07 (BE double). The node id recurs later in the
 # file for other parameters (values like 0.0/0.5/1.0), so the range check is
 # what disambiguates — the tempo is the first occurrence in plausible BPM range.
+# Project title: id 0x0044, type 0x08 (length-prefixed UTF-8 string).
+# First occurrence in the file is the project name set inside Bitwig.
+_TITLE_NODE = b'\x00\x44\x08'
+
 _BPM_NODE = b'\x02\xc8\x07'
 _BPM_MIN = 20.0
 _BPM_MAX = 999.0
@@ -49,9 +59,10 @@ _PLUGIN_PATH_RE = re.compile(
 
 
 def parse(bwproject_path: str) -> dict:
-    """Return dict with keys: bpm, plugins, time_sig_num, time_sig_denom,
-    bars, length_seconds. Fields are None (plugins: []) if not found."""
+    """Return dict with keys: bwproject_title, bpm, plugins, time_sig_num,
+    time_sig_denom, bars, length_seconds. Fields are None (plugins: []) if not found."""
     result = {
+        "bwproject_title": None,
         "bpm": None,
         "plugins": [],
         "time_sig_num": None,
@@ -65,12 +76,26 @@ def parse(bwproject_path: str) -> dict:
         if not data.startswith(_MAGIC):
             return result
 
+        result["bwproject_title"] = _extract_title(data)
         result["bpm"] = _extract_bpm(data)
         result["plugins"] = _extract_plugins(data)
         _derive_length(result)
     except Exception:
         pass
     return result
+
+
+def _extract_title(data: bytes) -> Optional[str]:
+    idx = data.find(_TITLE_NODE)
+    if idx < 0:
+        return None
+    try:
+        length = struct.unpack_from(">I", data, idx + 3)[0]
+        if length == 0 or length > 512:
+            return None
+        return data[idx + 7 : idx + 7 + length].decode("utf-8")
+    except (struct.error, UnicodeDecodeError):
+        return None
 
 
 _BPM_NODE_RE = re.compile(re.escape(_BPM_NODE))

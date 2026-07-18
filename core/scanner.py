@@ -10,7 +10,7 @@ from core import bwproject_parser
 CACHE_PATH = Path(__file__).parent.parent / "cache.json"
 
 _EMPTY_PARSE = {
-    "bpm": None, "plugins": [], "time_sig_num": None,
+    "bwproject_title": None, "bpm": None, "plugins": [], "time_sig_num": None,
     "time_sig_denom": None, "bars": None, "length_seconds": None,
 }
 
@@ -54,6 +54,7 @@ def scan(store: Store) -> list[Project]:
             and cached.get("size") == stat.st_size
         ):
             parsed = dict(_EMPTY_PARSE)
+            parsed["bwproject_title"] = cached.get("bwproject_title")
             parsed["bpm"] = cached.get("bpm")
             parsed["plugins"] = cached.get("plugins", [])
         else:
@@ -64,15 +65,17 @@ def scan(store: Store) -> list[Project]:
         new_cache[key] = {
             "mtime": stat.st_mtime,
             "size": stat.st_size,
+            "bwproject_title": parsed["bwproject_title"],
             "bpm": parsed["bpm"],
             "plugins": parsed["plugins"],
         }
-        tags, notes = store.get_user_data(entry.name)
+        tags, notes, custom_title = store.get_user_data(entry.name)
 
         projects.append(Project(
             name=entry.name,
             folder_path=entry.path,
             bwproject_path=bwproject_path,
+            bwproject_title=parsed["bwproject_title"],
             bpm=parsed["bpm"],
             time_sig_num=parsed["time_sig_num"],
             time_sig_denom=parsed["time_sig_denom"],
@@ -82,6 +85,7 @@ def scan(store: Store) -> list[Project]:
             modified=stat.st_mtime,
             tags=tags,
             notes=notes,
+            custom_title=custom_title,
             bounce_files=bounce_map.get(entry.name, []),
             plugins=parsed["plugins"],
         ))

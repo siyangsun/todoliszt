@@ -2,7 +2,7 @@ import os
 import subprocess
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QPoint, QRect, QSize
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPlainTextEdit,
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPlainTextEdit, QLineEdit,
     QPushButton, QFrame, QSizePolicy, QInputDialog, QStackedWidget, QLayout
 )
 from data.store import Project, Store, fmt_date
@@ -109,6 +109,7 @@ class TagChip(QPushButton):
 class ProjectDetail(QWidget):
     tags_changed = pyqtSignal(str, list)
     notes_changed = pyqtSignal(str, str)
+    custom_title_changed = pyqtSignal(str, str)  # (project_name, new_title)
 
     def __init__(self, store: Store, parent=None):
         super().__init__(parent)
@@ -118,6 +119,10 @@ class ProjectDetail(QWidget):
         self._notes_timer.setSingleShot(True)
         self._notes_timer.setInterval(1000)
         self._notes_timer.timeout.connect(self._save_notes)
+        self._title_timer = QTimer()
+        self._title_timer.setSingleShot(True)
+        self._title_timer.setInterval(600)
+        self._title_timer.timeout.connect(self._save_custom_title)
         self._build_ui()
 
     def _build_ui(self):
@@ -167,14 +172,23 @@ class ProjectDetail(QWidget):
         self._path_lbl.setWordWrap(True)
         dl.addWidget(self._path_lbl)
 
+        # Song title (custom)
+        song_title_row = QHBoxLayout()
+        song_title_lbl = QLabel("Song title:")
+        song_title_lbl.setFixedWidth(70)
+        self._song_title_edit = QLineEdit()
+        self._song_title_edit.setPlaceholderText("Custom title…")
+        self._song_title_edit.textEdited.connect(self._on_song_title_edited)
+        song_title_row.addWidget(song_title_lbl)
+        song_title_row.addWidget(self._song_title_edit, 1)
+        dl.addLayout(song_title_row)
+
         # Parsed metadata
         parsed_box = SectionBox("Project info")
         info_row = QHBoxLayout()
         self._bpm_lbl = QLabel()
-        self._sig_lbl = QLabel()
         self._len_lbl = QLabel()
-        self._bars_lbl = QLabel()
-        for lbl in (self._bpm_lbl, self._sig_lbl, self._len_lbl, self._bars_lbl):
+        for lbl in (self._bpm_lbl, self._len_lbl):
             info_row.addWidget(lbl)
         info_row.addStretch()
         parsed_box.add_layout(info_row)
@@ -232,10 +246,13 @@ class ProjectDetail(QWidget):
         self._stack.addWidget(detail)
 
     def load_project(self, project: Project | None):
-        # Flush any pending note save for the previous project before switching
+        # Flush any pending saves for the previous project before switching
         if self._notes_timer.isActive():
             self._notes_timer.stop()
             self._save_notes()
+        if self._title_timer.isActive():
+            self._title_timer.stop()
+            self._save_custom_title()
 
         self._project = project
 
@@ -244,12 +261,17 @@ class ProjectDetail(QWidget):
             return
 
         self._stack.setCurrentIndex(1)
-        self._title.setText(project.name)
-        self._path_lbl.setText(project.folder_path)
+        self._title.setText(project.title)
+        path_text = project.folder_path
+        if project.title != project.name:
+            path_text = f"Folder: {project.name}  ·  {project.folder_path}"
+        self._path_lbl.setText(path_text)
+        self._song_title_edit.blockSignals(True)
+        self._song_title_edit.setText(project.custom_title)
+        self._song_title_edit.blockSignals(False)
+
         self._bpm_lbl.setText(f"BPM: {project.bpm_str}")
-        self._sig_lbl.setText(f"  ·  {project.time_sig_str}")
-        self._len_lbl.setText(f"  ·  {project.length_str}")
-        self._bars_lbl.setText(f"  ·  {project.bars} bars" if project.bars else "")
+        self._len_lbl.setText(f"  ·  {project.length_str}" if project.length_seconds else "")
         self._created_lbl.setText(f"Created: {fmt_date(project.created)}")
         self._modified_lbl.setText(f"  ·  Modified: {fmt_date(project.modified)}")
 
@@ -308,6 +330,17 @@ class ProjectDetail(QWidget):
             self._store.set_tags(self._project.name, self._project.tags)
             self._refresh_tags(self._project.tags)
             self.tags_changed.emit(self._project.name, self._project.tags)
+
+    def _on_song_title_edited(self):
+        self._title_timer.start()
+
+    def _save_custom_title(self):
+        if self._project is None:
+            return
+        text = self._song_title_edit.text().strip()
+        self._project.custom_title = text
+        self._store.set_custom_title(self._project.name, text)
+        self.custom_title_changed.emit(self._project.name, text)
 
     def _on_notes_changed(self):
         self._notes_timer.start()

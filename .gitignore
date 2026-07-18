@@ -8,6 +8,7 @@ __pycache__/
 .env
 settings.json
 cache.json
+todoliszt.json
 
 # Claude working notes
 .claude/

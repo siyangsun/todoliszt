@@ -80,6 +80,7 @@ class MainWindow(QMainWindow):
         self._detail = ProjectDetail(self._store)
         self._detail.notes_changed.connect(self._on_notes_saved)
         self._detail.tags_changed.connect(self._on_tags_changed)
+        self._detail.custom_title_changed.connect(self._on_custom_title_changed)
         scroll.setWidget(self._detail)
         self._splitter.addWidget(scroll)
 
@@ -169,6 +170,15 @@ class MainWindow(QMainWindow):
 
     def _on_tags_changed(self, name: str, tags: list):
         self._status.showMessage(f'Tags updated for "{name}"', 2000)
+
+    def _on_custom_title_changed(self, name: str, title: str):
+        model = self._list_view.source_model
+        for row, p in enumerate(model._projects):
+            if p.name == name:
+                idx = model.index(row, 0)
+                model.dataChanged.emit(idx, idx, [])
+                break
+        self._status.showMessage(f'Title saved for "{name}"', 2000)
 
     def _open_settings(self):
         dlg = SettingsDialog(self._store, self)
