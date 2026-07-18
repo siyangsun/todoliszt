@@ -170,4 +170,7 @@ def _assign_bounces(
             if base.startswith(prefix):
                 mapping.setdefault(by_lower[prefix], []).append(path)
                 break
-    return {name: sorted(paths) for name, paths in mapping.items()}
+    return {
+        name: sorted(paths, key=lambda p: os.path.getmtime(p), reverse=True)
+        for name, paths in mapping.items()
+    }
