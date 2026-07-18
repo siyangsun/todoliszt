@@ -147,6 +147,23 @@ PALETTE_THEMES = {
         "disabled": "#525a68",
         "bright_text": "#bf616a",
     },
+    # Tangerine Peel — bright warm-orange base with vivid burnt-orange accents
+    "Tangerine Peel": {
+        "window": "#fff4e6",
+        "base": "#fffaf2",
+        "alternate_base": "#fce9cc",
+        "button": "#fad090",
+        "text": "#2a1500",
+        "accent": "#ff5500",
+        "highlighted_text": "#ffffff",
+        "link": "#e84000",
+        "border": "#f07828",
+        "hover": "#ffcc80",
+        "muted": "#c87020",
+        "placeholder": "#d8944a",
+        "disabled": "#e8c8a0",
+        "bright_text": "#ff2800",
+    },
     # Cyberpunk — near-black with electric-yellow selections and neon-teal links
     "Cyberpunk": {
         "window": "#0d0d1a",
