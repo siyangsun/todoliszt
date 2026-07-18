@@ -8,6 +8,14 @@ from PyQt6.QtWidgets import (
 from data.store import Project, Store, fmt_date
 
 
+class _DoubleClickLabel(QLabel):
+    doubleClicked = pyqtSignal()
+
+    def mouseDoubleClickEvent(self, event):
+        self.doubleClicked.emit()
+        super().mouseDoubleClickEvent(event)
+
+
 def _reveal_in_explorer(path: str):
     subprocess.Popen(["explorer", "/select,", os.path.normpath(path)])
 
@@ -358,8 +366,9 @@ class ProjectDetail(QWidget):
         self._clear_bounces()
         for path in bounce_files:
             row = QHBoxLayout()
-            name_lbl = QLabel(os.path.basename(path))
+            name_lbl = _DoubleClickLabel(os.path.basename(path))
             name_lbl.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+            name_lbl.doubleClicked.connect(lambda p=path: self.play_requested.emit(p))
             play_btn = QPushButton("▶")
             play_btn.setFixedWidth(28)
             play_btn.setToolTip("Play in player")
