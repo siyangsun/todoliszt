@@ -3,7 +3,8 @@ import subprocess
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QPoint, QRect, QSize
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPlainTextEdit, QLineEdit,
-    QPushButton, QFrame, QSizePolicy, QInputDialog, QStackedWidget, QLayout
+    QPushButton, QFrame, QSizePolicy, QInputDialog, QStackedWidget, QLayout,
+    QStyle
 )
 from data.store import Project, Store, fmt_date
 
@@ -124,6 +125,7 @@ class ProjectDetail(QWidget):
         super().__init__(parent)
         self._store = store
         self._project: Project | None = None
+        self._playing_path: str | None = None
         self._notes_timer = QTimer()
         self._notes_timer.setSingleShot(True)
         self._notes_timer.setInterval(1000)
@@ -362,19 +364,32 @@ class ProjectDetail(QWidget):
         self._store.set_notes(self._project.name, text)
         self.notes_changed.emit(self._project.name, text)
 
+    def _play_bounce(self, path: str):
+        self._playing_path = path
+        self.play_requested.emit(path)
+        if self._project:
+            self._refresh_bounces(self._project.bounce_files)
+
     def _refresh_bounces(self, bounce_files: list[str]):
         self._clear_bounces()
+        folder_icon = self.style().standardIcon(QStyle.StandardPixmap.SP_DirOpenIcon)
         for path in bounce_files:
+            playing = path == self._playing_path
             row = QHBoxLayout()
             name_lbl = _DoubleClickLabel(os.path.basename(path))
             name_lbl.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-            name_lbl.doubleClicked.connect(lambda p=path: self.play_requested.emit(p))
+            name_lbl.doubleClicked.connect(lambda p=path: self._play_bounce(p))
+            if playing:
+                f = name_lbl.font()
+                f.setBold(True)
+                name_lbl.setFont(f)
             play_btn = QPushButton("▶")
             play_btn.setFixedWidth(28)
             play_btn.setToolTip("Play in player")
-            play_btn.clicked.connect(lambda checked, p=path: self.play_requested.emit(p))
-            open_btn = QPushButton("Open")
-            open_btn.setFixedWidth(50)
+            play_btn.clicked.connect(lambda checked, p=path: self._play_bounce(p))
+            open_btn = QPushButton()
+            open_btn.setIcon(folder_icon)
+            open_btn.setFixedWidth(28)
             open_btn.setToolTip("Show in Explorer")
             open_btn.clicked.connect(lambda checked, p=path: _reveal_in_explorer(p))
             row.addWidget(name_lbl)

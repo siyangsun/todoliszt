@@ -73,6 +73,7 @@ class MainWindow(QMainWindow):
 
         self._list_view = ProjectListView()
         self._list_view.selectionModel().selectionChanged.connect(self._on_selection)
+        self._list_view.bounce_play_requested.connect(self._on_list_bounce_play)
         self._splitter.addWidget(self._list_view)
 
         scroll = QScrollArea()
@@ -184,6 +185,9 @@ class MainWindow(QMainWindow):
                 model.dataChanged.emit(idx, idx, [])
                 break
         self._status.showMessage(f'Title saved for "{name}"', 2000)
+
+    def _on_list_bounce_play(self, path: str):
+        self._detail._play_bounce(path)
 
     def _open_settings(self):
         dlg = SettingsDialog(self._store, self)

@@ -1,6 +1,6 @@
 import os
 from PyQt6.QtCore import (
-    QAbstractTableModel, QModelIndex, Qt, QSortFilterProxyModel
+    QAbstractTableModel, QModelIndex, Qt, QSortFilterProxyModel, pyqtSignal
 )
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import (
@@ -123,6 +123,8 @@ class FilterProxyModel(QSortFilterProxyModel):
 
 
 class ProjectListView(QTableView):
+    bounce_play_requested = pyqtSignal(str)  # path of bounce to play
+
     def __init__(self):
         super().__init__()
         self.source_model = ProjectModel()
@@ -205,5 +207,7 @@ class ProjectListView(QTableView):
     def _on_double_click(self, index: QModelIndex):
         source_idx = self.proxy.mapToSource(index)
         project = self.source_model.project_at(source_idx.row())
-        if project:
+        if project and project.bounce_files:
+            self.bounce_play_requested.emit(project.bounce_files[0])
+        elif project:
             os.startfile(project.folder_path)
