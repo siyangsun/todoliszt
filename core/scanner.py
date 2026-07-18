@@ -2,6 +2,8 @@ import json
 import os
 from pathlib import Path
 
+from mutagen import File as _MutagenFile
+
 from data.store import Project, Store, _atomic_write_json
 from core import bwproject_parser
 
@@ -70,6 +72,9 @@ def scan(store: Store) -> list[Project]:
             "plugins": parsed["plugins"],
         }
         tags, notes, custom_title = store.get_user_data(entry.name)
+        bounce_files = bounce_map.get(entry.name, [])
+        durations = [d for p in bounce_files if (d := _audio_duration(p)) is not None]
+        length_seconds = max(durations) if durations else parsed["length_seconds"]
 
         projects.append(Project(
             name=entry.name,
@@ -80,13 +85,13 @@ def scan(store: Store) -> list[Project]:
             time_sig_num=parsed["time_sig_num"],
             time_sig_denom=parsed["time_sig_denom"],
             bars=parsed["bars"],
-            length_seconds=parsed["length_seconds"],
+            length_seconds=length_seconds,
             created=stat.st_ctime,
             modified=stat.st_mtime,
             tags=tags,
             notes=notes,
             custom_title=custom_title,
-            bounce_files=bounce_map.get(entry.name, []),
+            bounce_files=bounce_files,
             plugins=parsed["plugins"],
         ))
 
@@ -108,6 +113,16 @@ def _save_cache(cache: dict):
         _atomic_write_json(CACHE_PATH, cache)
     except OSError:
         pass
+
+
+def _audio_duration(path: str) -> float | None:
+    try:
+        audio = _MutagenFile(path)
+        if audio is not None and audio.info is not None:
+            return audio.info.length
+    except Exception:
+        pass
+    return None
 
 
 def _find_bwproject(folder_path: str) -> str | None:
